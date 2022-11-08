@@ -3,3 +3,4 @@
 *.iml
 *.txt
 *.bson
+.DS_Store
