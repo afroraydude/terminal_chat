@@ -82,6 +82,7 @@ async fn handle_connection(
     let login_message = Message::from_bson(login_message.to_vec());
     if login_message.message_type != MessageType::Login {
         println!("Client sent invalid message type");
+        println!("Expected: Login");
         return Ok(());
     }
 

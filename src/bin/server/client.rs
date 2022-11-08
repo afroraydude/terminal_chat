@@ -5,13 +5,13 @@ use common::user::User;
 use tokio::net::TcpStream;
 use tokio_util::codec::{BytesCodec, Framed};
 
-use crate::server::Server;
+use crate::server::{Server, Rx};
 
 pub struct Client {
     pub id: u64,
     pub username: String,
     pub socket: Framed<TcpStream, BytesCodec>,
-    pub rx: mpsc::UnboundedReceiver<Vec<u8>>,
+    pub rx: Rx,
     pub is_logged_in: bool,
 }
 

@@ -4,3 +4,4 @@
 *.txt
 *.bson
 */.DS_Store
+.vscode
