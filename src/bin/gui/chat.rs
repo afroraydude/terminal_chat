@@ -4,35 +4,39 @@ use common::{
     user::User,
 };
 use egui::Layout;
+use std::sync::mpsc::{Sender, Receiver, self};
+use tokio::sync::mpsc::UnboundedSender;
 
 pub struct ChatApp {
     pub user: User,
     pub messages: Vec<Message>,
     pub next_message: String,
+    pub tx: UnboundedSender<Message>,
+    pub rx: mpsc::Receiver<Message>,
 }
 
 impl ChatApp {
-    pub fn new(user: User) -> Self {
+    pub fn new(user: User, tx: UnboundedSender<Message>, rx: mpsc::Receiver<Message>) -> Self {
         Self {
             user,
             messages: Vec::new(),
             next_message: String::new(),
+            tx,
+            rx
         }
     }
-}
 
-impl Default for ChatApp {
-    fn default() -> Self {
-        Self {
-            user: User::new("Unknown".to_string()),
-            messages: Vec::new(),
-            next_message: String::new(),
+    pub fn update(&mut self) {
+        // check for new messages
+        while let Ok(message) = self.rx.try_recv() {
+            self.messages.push(message);
         }
     }
 }
 
 impl eframe::App for ChatApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        self.update();
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Chat");
             ui.separator();
@@ -63,9 +67,11 @@ impl eframe::App for ChatApp {
                         )
                         .to_bson();
                         let message = Message::new(common::message::MessageType::Message, payload);
+                        self.tx.send(message.clone()).unwrap();
                         self.messages.push(message);
                         // TODO: send message to server
                         self.next_message = String::new();
+                        
                     }
                 });
                 // show the messages
