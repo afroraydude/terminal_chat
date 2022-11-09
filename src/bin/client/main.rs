@@ -1,4 +1,4 @@
-use std::{error::Error, io::{self, Write, BufReader}, net::SocketAddr, fs::File, path, thread};
+use std::{error::{Error, self}, io::{self, Write, BufReader}, net::SocketAddr, fs::File, path, thread};
 
 use client::Client;
 use common::{user::User, message::{self, MessagePayload, Payload}, id};
@@ -61,7 +61,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut stdin = stdin.map(|i| i.map(BytesMut::freeze));
     let mut stdout = FramedWrite::new(tokio::io::stdout(), BytesCodec::new());
 
-    let mut stream = TcpStream::connect("127.0.0.1:1234").await?;
+    // get address from args, or panic
+    let addr = env::args()
+        .nth(1)
+        .unwrap_or_else(|| "".to_string());
+    
+    if addr == "" {
+        log::error!("No address provided");
+        // exit the program
+        std::process::exit(1);
+    }
+
+    let mut stream = TcpStream::connect(addr).await?;
     let (reader, writer) = stream.split();
     let mut sink = FramedWrite::new(writer, BytesCodec::new());
     let mut stream = FramedRead::new(reader, BytesCodec::new());
@@ -76,10 +87,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                     match message.message_type {
                         MessageType::Message => {
-                            let message_content = String::from_utf8(message.payload).unwrap();
 
                             // get message payload
-                            let message_payload: MessagePayload = MessagePayload::from_bson(message_content.as_bytes().to_vec());
+                            let message_payload: MessagePayload = MessagePayload::from_bson(message.payload);
 
                             // get the message
                             println!("[{}]{}: {}", id::to_timestamp_string(message.id), message_payload.username, message_payload.message);
@@ -104,14 +114,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     let input = String::from_utf8(input.to_vec()).unwrap();
                     // remove the newline
                     let input = input.trim().to_string();
-                    
-                    let payload = MessagePayload::new(user.clone().username, input);
 
-                    let message = Message::new(MessageType::Message, payload.to_bson());
-                    let message = message.to_bson();
-                    let message = Bytes::from(message);
+                    // split string into byte chunks
+                    let chunks = input.as_bytes().chunks(256);
 
-                    sink.send(message).await?;
+                    for chunk in chunks {
+                        let string = String::from_utf8(chunk.to_vec()).unwrap();
+                        let message_payload = MessagePayload::new(user.clone().username, string);
+                        let message = Message::new(MessageType::Message, message_payload.to_bson());
+                        sink.send(Bytes::from(message.to_bson())).await?;
+                    }
                 } else {
                     break;
                 }
@@ -122,6 +134,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     }
+
+    log::error!("Connection closed");
+    // exit the program
+    std::process::exit(1);
 
     Ok(())
 }
