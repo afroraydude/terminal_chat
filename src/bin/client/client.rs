@@ -1,13 +1,9 @@
 use bytes::Bytes;
-use common::{user::User, message::Message};
-use futures::{future, Sink, SinkExt, Stream, StreamExt, channel::mpsc::Sender};
-use std::{error::Error, io, net::SocketAddr};
-use tokio::net::TcpStream;
-use tokio_util::codec::{BytesCodec, FramedRead, FramedWrite};
+use common::{user::User,  channel::Channel};
 
 pub struct Client {
     user: User,
-    channels: Vec<String>,
+    channels: Vec<Channel>,
 }
 
 impl Client {

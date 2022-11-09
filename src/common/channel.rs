@@ -79,3 +79,12 @@ impl Channel {
         std::fs::write(format!("data/channels/{}.bson", self.name), data).unwrap();
     }
 }
+
+pub fn get_default_channels() -> Vec<Channel> {
+    let mut channels = Vec::new();
+
+    channels.push(Channel::new("general".to_string()));
+    channels.push(Channel::new("random".to_string()));
+
+    channels
+}
