@@ -10,10 +10,6 @@ pub struct Client {
     channels: Vec<String>,
 }
 
-pub async fn connect(addr: SocketAddr, username: String) -> Result<(), Box<dyn Error>> {
-    Ok(())
-}
-
 impl Client {
     pub fn new(user: User) -> Self {
         Self {

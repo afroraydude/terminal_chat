@@ -68,138 +68,34 @@ impl Message {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct AcceptPayload {
-    pub original_type: MessageType,
-    pub original_id: u64,
-    payload: Vec<u8>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct RejectPayload {
-    pub original_type: MessageType,
-    pub original_id: u64,
-    pub reason: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ServerJoinPayload {
-    pub user_id: u64,
-    pub username: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ChannelJoinPayload {
-    pub channel_id: u64,
-    pub channel_name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ChannelLeavePayload {
-    pub channel_id: u64,
-    pub channel_name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct UserInfoPayload {
-    pub user_id: u64,
-    pub username: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct MessageSendPayload {
-    pub channel_name: String,
-    pub user_id: u64,
-    pub message: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct AcknowledgePayload {
-    pub original_type: MessageType,
-    pub original_id: u64,
-}
-
 pub trait Payload {
     fn to_bson(&self) -> Vec<u8>;
     fn from_bson(bson: Vec<u8>) -> Self;
 }
 
-impl Payload for AcceptPayload {
-    fn to_bson(&self) -> Vec<u8> {
-        bson::to_vec(self).unwrap()
-    }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MessagePayload {
+    pub username: String,
+    pub message: String,
+}
 
-    fn from_bson(bson: Vec<u8>) -> AcceptPayload {
-        bson::from_slice(&bson).unwrap()
+impl MessagePayload {
+    pub fn new(username: String, message: String) -> MessagePayload {
+        MessagePayload {
+            username,
+            message,
+        }
     }
 }
 
-impl Payload for RejectPayload {
+impl Payload for MessagePayload {
     fn to_bson(&self) -> Vec<u8> {
         bson::to_vec(self).unwrap()
     }
 
-    fn from_bson(bson: Vec<u8>) -> RejectPayload {
-        bson::from_slice(&bson).unwrap()
-    }
-}
-
-impl Payload for ServerJoinPayload {
-    fn to_bson(&self) -> Vec<u8> {
-        bson::to_vec(self).unwrap()
-    }
-
-    fn from_bson(bson: Vec<u8>) -> ServerJoinPayload {
-        bson::from_slice(&bson).unwrap()
-    }
-}
-
-impl Payload for ChannelJoinPayload {
-    fn to_bson(&self) -> Vec<u8> {
-        bson::to_vec(self).unwrap()
-    }
-
-    fn from_bson(bson: Vec<u8>) -> ChannelJoinPayload {
-        bson::from_slice(&bson).unwrap()
-    }
-}
-
-impl Payload for ChannelLeavePayload {
-    fn to_bson(&self) -> Vec<u8> {
-        bson::to_vec(self).unwrap()
-    }
-
-    fn from_bson(bson: Vec<u8>) -> ChannelLeavePayload {
-        bson::from_slice(&bson).unwrap()
-    }
-}
-
-impl Payload for UserInfoPayload {
-    fn to_bson(&self) -> Vec<u8> {
-        bson::to_vec(self).unwrap()
-    }
-
-    fn from_bson(bson: Vec<u8>) -> UserInfoPayload {
-        bson::from_slice(&bson).unwrap()
-    }
-}
-
-impl Payload for MessageSendPayload {
-    fn to_bson(&self) -> Vec<u8> {
-        bson::to_vec(self).unwrap()
-    }
-
-    fn from_bson(bson: Vec<u8>) -> MessageSendPayload {
-        bson::from_slice(&bson).unwrap()
-    }
-}
-
-impl Payload for AcknowledgePayload {
-    fn to_bson(&self) -> Vec<u8> {
-        bson::to_vec(self).unwrap()
-    }
-
-    fn from_bson(bson: Vec<u8>) -> AcknowledgePayload {
-        bson::from_slice(&bson).unwrap()
+    fn from_bson(bson: Vec<u8>) -> MessagePayload {
+        bson::from_slice(&bson).unwrap_or_else(
+            |_| MessagePayload::new("".to_string(), "".to_string())
+        )
     }
 }

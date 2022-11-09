@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use common::message::{Message, MessageType};
+use common::message::{Message, MessageType, MessagePayload, Payload};
 use common::user::User;
 use log::{info, error, debug};
 use tokio::net::{TcpListener, TcpStream};
@@ -100,7 +100,8 @@ async fn handle_connection(
         debug!("Client logged in as {}", user.username);
         let mut state = server.lock().await;
         let message_payload = format!("{} has joined the server", user.username);
-        let message = Message::new(MessageType::Message, message_payload.as_bytes().to_vec());
+        let message_payload = MessagePayload::new("SERVER".to_string(), message_payload).to_bson();
+        let message = Message::new(MessageType::Message, message_payload);
         state.broadcast(addr, message.to_bson()).await;
     }
 
