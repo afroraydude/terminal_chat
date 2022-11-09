@@ -143,7 +143,7 @@ async fn handle_connection(
         state.remove_client(addr);
 
         let msg = format!("User has left the chat");
-        let message = Message::new(MessageType::Message, msg.as_bytes().to_vec());
+        let message = Message::new(MessageType::Message, MessagePayload::new("SERVER".to_string(), msg).to_bson());
         state.broadcast(addr, message.to_bson()).await;
     }
 

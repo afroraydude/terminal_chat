@@ -1,7 +1,7 @@
 use std::{error::Error, io::{self, Write, BufReader}, net::SocketAddr, fs::File, path, thread};
 
 use client::Client;
-use common::{user::User, message::{self, MessagePayload, Payload}};
+use common::{user::User, message::{self, MessagePayload, Payload}, id};
 use futures::{channel::mpsc, future::InspectOk, StreamExt};
 use log::debug;
 use tokio_util::codec::{Framed, BytesCodec, FramedWrite, FramedRead};
@@ -82,7 +82,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             let message_payload: MessagePayload = MessagePayload::from_bson(message_content.as_bytes().to_vec());
 
                             // get the message
-                            println!("{}: {}", message_payload.username, message_payload.message);
+                            println!("[{}]{}: {}", id::to_timestamp_string(message.id), message_payload.username, message_payload.message);
                         },
                         MessageType::ConnectionReceive => {
                             let login_message = Message::new(MessageType::Login, user.clone().to_bson());
