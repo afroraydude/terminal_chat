@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{sync::Arc, net::SocketAddr};
+use bytes::Bytes;
+use futures::SinkExt;
+use log::debug;
 use tokio::sync::{mpsc, Mutex};
 
 use common::user::User;
@@ -8,29 +11,22 @@ use tokio_util::codec::{BytesCodec, Framed};
 use crate::server::{Server, Rx};
 
 pub struct Client {
-    pub id: u64,
-    pub username: String,
-    pub socket: Framed<TcpStream, BytesCodec>,
+    pub bytes: Framed<TcpStream, BytesCodec>,
     pub rx: Rx,
-    pub is_logged_in: bool,
 }
 
 impl Client {
     pub async fn new(
         server: Arc<Mutex<Server>>,
-        socket: Framed<TcpStream, BytesCodec>,
-        user: User,
+        bytes: Framed<TcpStream, BytesCodec>,
     ) -> std::io::Result<Client> {
-        let addr = socket.get_ref().peer_addr()?;
+        let addr = bytes.get_ref().peer_addr()?;
 
         let (tx, rx) = mpsc::unbounded_channel();
 
         let client = Client {
-            id: user.id,
-            username: user.username,
-            socket,
+            bytes,
             rx,
-            is_logged_in: true,
         };
 
         server.lock().await.add_client(addr, tx);
@@ -38,7 +34,17 @@ impl Client {
         Ok(client)
     }
 
-    pub fn get_user(&self) -> User {
-        User::create_all(self.id, self.username.clone())
+    pub fn addr(&self) -> SocketAddr {
+        self.bytes.get_ref().peer_addr().unwrap()
+    }
+
+    pub async fn send(&mut self, msg: Vec<u8>) -> std::io::Result<()> {
+        let test = self.bytes.send(Bytes::from(msg)).await;
+        debug!("Sending message to client {}", self.addr().to_string());
+        if let Err(e) = test {
+            debug!("Error sending message to client {}: {}", self.addr().to_string(), e);
+        }
+
+        Ok(())
     }
 }

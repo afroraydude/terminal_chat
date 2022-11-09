@@ -2,6 +2,7 @@ extern crate common;
 
 use std::io::Write;
 use common::message::{Message, MessageType};
+use log::debug;
 
 fn main() {
     // loop through input
@@ -18,12 +19,12 @@ fn main() {
         file.write_all(&message.to_bson()).unwrap();
 
         // print debug "Message sent. Message ID: {id}, Message Type: {type}, Message Length: {length}"
-        println!("Message sent. Message ID: {}, Message Type: {:?}, Message Length: {}", message.id, message.message_type, message.length());
+        debug!("Message sent. Message ID: {}, Message Type: {:?}, Message Length: {}", message.id, message.message_type, message.length());
 
         // test the id by getting its timestamp
-        println!("Message timestamp: {}", common::id::to_timestamp(message.id));
+        debug!("Message timestamp: {}", common::id::to_timestamp(message.id));
         // convert timestamp (unix epoch) to human readable
         let timestamp = chrono::NaiveDateTime::from_timestamp(common::id::to_timestamp(message.id) as i64, 0);
-        println!("Message timestamp (human readable): {}", timestamp);
+        debug!("Message timestamp (human readable): {}", timestamp);
     }
 }

@@ -1,4 +1,5 @@
 use common::{channel::Channel, user::User};
+use log::{debug, error};
 use std::{collections::HashMap, net::SocketAddr};
 use tokio::sync::mpsc;
 
@@ -9,7 +10,6 @@ pub type Rx = mpsc::UnboundedReceiver<Vec<u8>>;
 
 pub struct Server {
     channels: HashMap<String, Channel>,
-    users: Vec<User>,
     clients: HashMap<SocketAddr, Tx>,
 }
 
@@ -22,14 +22,6 @@ impl Server {
         self.channels.remove(&channel.name);
     }
 
-    pub fn add_user(&mut self, user: User) {
-        self.users.push(user);
-    }
-
-    pub fn remove_user(&mut self, user: User) {
-        self.users.retain(|u| u.id != user.id);
-    }
-
     pub fn add_client(&mut self, addr: SocketAddr, tx: Tx) {
         self.clients.insert(addr, tx);
     }
@@ -38,9 +30,16 @@ impl Server {
         self.clients.remove(&addr);
     }
 
-    pub async fn broadcast(&mut self, msg: Vec<u8>) {
-        for tx in self.clients.values() {
-            let _ = tx.send(msg.clone());
+    pub async fn broadcast(&mut self, sender: SocketAddr, msg: Vec<u8>) {
+        for (addr, tx) in self.clients.iter_mut() {
+            if *addr == sender {
+                continue;
+            }
+            debug!("Sending message to client {}", addr.to_string());
+
+            if let Err(e) = tx.send(msg.clone().into()) {
+                error!("Error sending message to client {}: {}", addr.to_string(), e);
+            }
         }
     }
 }
@@ -57,7 +56,6 @@ impl Default for Server {
 
         Server {
             channels: default_channels,
-            users: Vec::new(),
             clients: HashMap::new(),
         }
     }

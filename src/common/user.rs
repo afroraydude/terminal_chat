@@ -39,3 +39,9 @@ impl User {
         }
     }
 }
+
+impl Clone for User {
+    fn clone(&self) -> Self {
+        User::create_all(self.id, self.username.clone())
+    }
+}

@@ -1,21 +1,21 @@
 use bytes::Bytes;
 use common::message::{Message, MessageType};
 use common::user::User;
+use log::{info, error, debug};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, Mutex};
 use tokio_stream::StreamExt;
-use tokio_util::codec::{Framed, LinesCodec};
+use tokio_util::codec::{Framed, BytesCodec};
 
 use futures::SinkExt;
-use std::collections::HashMap;
 use std::env;
 use std::error::Error;
-use std::io::{self, Read};
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use simplelog::*;
+
 use server::Server;
-use tokio_util::codec::*;
 
 mod client;
 mod server;
@@ -23,6 +23,8 @@ extern crate common;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    SimpleLogger::init(LevelFilter::Debug, Config::default()).unwrap();
+
     let mut server = Server::default();
     let state = Arc::new(Mutex::new(server));
 
@@ -44,10 +46,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         // Spawn our handler to be run asynchronously.
         tokio::spawn(async move {
-            println!("new client: {}", addr);
+            info!("new client: {}", addr);
             match handle_connection(state, stream, addr).await {
                 Err(e) => {
-                    println!("failed to process connection: {}", e);
+                    error!("failed to process connection: {}", e);
                 }
                 _ => (),
             }
@@ -69,11 +71,11 @@ async fn handle_connection(
     let login_message = match bytes.next().await {
         Some(Ok(bytes)) => bytes,
         Some(Err(e)) => {
-            println!("Error: {}", e);
+            error!("Error: {}", e);
             return Ok(());
         }
         None => {
-            println!("Client disconnected");
+            info!("Client disconnected");
             return Ok(());
         }
     };
@@ -81,50 +83,69 @@ async fn handle_connection(
     // deserialize the login message
     let login_message = Message::from_bson(login_message.to_vec());
     if login_message.message_type != MessageType::Login {
-        println!("Client sent invalid message type");
-        println!("Expected: Login");
-        return Ok(());
-    }
-
-    // get the user from the login message
-    let user = User::from_bson(login_message.payload);
-    if user.username == "Unknown" {
-        println!("Client sent invalid username");
+        debug!("Client sent invalid message type");
+        debug!("Expected: Login");
         return Ok(());
     }
 
     // create a new client
-    let mut client = client::Client::new(server.clone(), bytes, user).await?;
+    let mut client = client::Client::new(server.clone(), bytes).await?;
+
+    // get the user from the login message
+    let user = User::from_bson(login_message.payload);
+    if user.username == "Unknown" {
+        debug!("Client sent invalid username");
+        return Ok(());
+    } else {
+        debug!("Client logged in as {}", user.username);
+        let mut state = server.lock().await;
+        let message_payload = format!("{} has joined the server", user.username);
+        let message = Message::new(MessageType::Message, message_payload.as_bytes().to_vec());
+        state.broadcast(addr, message.to_bson()).await;
+    }
 
     loop {
         tokio::select! {
-            result = client.socket.next() => {
+            Some(bytes) = client.rx.recv() => {
+                debug!("Sending message to client {}", client.addr().to_string());
+                client.send(bytes).await?;
+            }
+            result = client.bytes.next() => {
                 match result {
                     Some(Ok(bytes)) => {
                         let message = Message::from_bson(bytes.to_vec());
                         match message.message_type {
                             MessageType::Message => {
-                                let message = message.payload;
                                 let mut state = server.lock().await;
-                                state.broadcast(message).await;
+                                state.broadcast(addr, message.to_bson()).await;
                             }
                             _ => {
-                                println!("Client sent invalid message type");
+                                debug!("Client sent invalid message type");
                                 break;
                             }
                         }
                     }
                     Some(Err(e)) => {
-                        println!("Error: {}", e);
+                        error!("Error: {}", e);
                         break;
                     }
                     None => {
-                        println!("Client disconnected");
                         break;
                     }
                 }
             }
         }
     }
+
+    {
+        let mut state = server.lock().await;
+        state.remove_client(addr);
+
+        let msg = format!("User has left the chat");
+        let message = Message::new(MessageType::Message, msg.as_bytes().to_vec());
+        state.broadcast(addr, message.to_bson()).await;
+    }
+
+
     Ok(())
 }
