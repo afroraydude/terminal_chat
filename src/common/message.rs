@@ -57,26 +57,26 @@ impl Message {
         self.payload = payload;
     }
 
-    pub fn to_bson(&self) -> Vec<u8> {
-        bson::to_vec(self).unwrap()
+    pub fn to_bytes(&self) -> Vec<u8> {
+        rmp_serde::to_vec(self).unwrap()
     }
 
-    pub fn from_bson(bson: Vec<u8>) -> Message {
+    pub fn from_bytes(bytes: Vec<u8>) -> Message {
         // try to deserialize the bson, if it fails, return an unknown message
-        match bson::from_slice(&bson) {
+        match rmp_serde::from_slice(&bytes) {
             Ok(message) => message,
             Err(_) => Message::new(MessageType::Unknown, vec![]),
         }
     }
 
     pub fn length(&self) -> usize {
-        self.to_bson().len()
+        self.to_bytes().len()
     }
 }
 
 pub trait Payload {
-    fn to_bson(&self) -> Vec<u8>;
-    fn from_bson(bson: Vec<u8>) -> Self;
+    fn to_bytes(&self) -> Vec<u8>;
+    fn from_bytes(bytes: Vec<u8>) -> Self;
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -95,12 +95,12 @@ impl MessagePayload {
 }
 
 impl Payload for MessagePayload {
-    fn to_bson(&self) -> Vec<u8> {
-        bson::to_vec(self).unwrap()
+    fn to_bytes(&self) -> Vec<u8> {
+        rmp_serde::to_vec(self).unwrap()
     }
 
-    fn from_bson(bson: Vec<u8>) -> MessagePayload {
-        bson::from_slice(&bson).unwrap_or_else(
+    fn from_bytes(bytes: Vec<u8>) -> MessagePayload {
+        rmp_serde::from_slice(&bytes).unwrap_or_else(
             |_| MessagePayload::new("".to_string(), "".to_string())
         )
     }

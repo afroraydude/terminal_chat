@@ -29,7 +29,7 @@ fn setup() -> User {
         let file = File::open("me.dat").unwrap();
         let reader = BufReader::new(file);
         // convert from bson to user
-        let user: User = bson::from_reader(reader).unwrap();
+        let user: User = rmp_serde::from_read(reader).unwrap();
         return user;
     }
 
@@ -48,7 +48,7 @@ fn setup() -> User {
     // save the user to a file
     let mut file = std::fs::File::create("me.dat").unwrap();
 
-    file.write_all(&user.to_bson()).unwrap();
+    file.write_all(&user.to_bytes()).unwrap();
 
     user
 }
@@ -117,7 +117,7 @@ async fn connect(
             Some(Ok(bytes)) => {
               debug!("Received bytes: {:?}", bytes.len());
               // convert from bytes to message
-              let message = Message::from_bson(bytes.to_vec());
+              let message = Message::from_bytes(bytes.to_vec());
               // send the message to the rx channel
               match message.message_type {
                 MessageType::Message => {
@@ -126,8 +126,8 @@ async fn connect(
                 },
                 MessageType::ConnectionReceive => {
                   // send login message
-                  let login_message = Message::new(MessageType::Login, user.clone().to_bson());
-                  sink.send(Bytes::from(login_message.to_bson())).await?;
+                  let login_message = Message::new(MessageType::Login, user.clone().to_bytes());
+                  sink.send(Bytes::from(login_message.to_bytes())).await?;
                 },
                 _ => {
                   log::error!("Invalid message type");
@@ -148,7 +148,7 @@ async fn connect(
             match msg {
                 Some(message) => {
                 debug!("Sending message: {:?}", message);
-                sink.send(Bytes::from(message.to_bson())).await?;
+                sink.send(Bytes::from(message.to_bytes())).await?;
                 }
                 None => {
                 log::error!("Connection closed");

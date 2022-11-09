@@ -27,13 +27,13 @@ impl User {
         self.username = username;
     }
 
-    pub fn to_bson(&self) -> Vec<u8> {
-        bson::to_vec(self).unwrap()
+    pub fn to_bytes(&self) -> Vec<u8> {
+        rmp_serde::to_vec(self).unwrap()
     }
 
-    pub fn from_bson(bson: Vec<u8>) -> User {
+    pub fn from_bytes(bson: Vec<u8>) -> User {
         // try to deserialize the bson, if it fails, return an unknown user
-        match bson::from_slice(&bson) {
+        match rmp_serde::from_slice(&bson) {
             Ok(user) => user,
             Err(_) => User::new("Unknown".to_string()),
         }

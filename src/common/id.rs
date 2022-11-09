@@ -99,3 +99,26 @@ pub fn to_timestamp_string(id: u64) -> String {
 
     datetime.format("%Y-%m-%d %H:%M:%S").to_string()
 }
+
+pub fn to_formatted_timestamp(id: u64, format: &str) -> String {
+    // convert the id to a string
+    let id = format!("{:b}", id);
+
+    // get the timestamp from the id by ommiiing the last 16 bits
+    let timestamp = &id[0..id.len() - 16];
+
+    // convert the timestamp to a u64
+    let timestamp = u64::from_str_radix(&timestamp, 2).unwrap();
+
+    // add the Jan 1, 2000 00:00:00 UTC timestamp
+    let timestamp = timestamp + 946684800;
+
+    let native = NaiveDateTime::from_timestamp(timestamp as i64, 0);
+
+    let datetime: DateTime<Utc> = DateTime::from_utc(native, Utc);
+
+    // convert to local time
+    let datetime: DateTime<Local> = DateTime::from(datetime);
+
+    datetime.format(format).to_string()
+}

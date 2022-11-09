@@ -37,24 +37,31 @@ impl ChatApp {
 impl eframe::App for ChatApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         self.update();
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Chat");
-            ui.separator();
-            /*
-            ui.label("Channels");
-            ui.separator();
-            // show the channels
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                for channel in &self.channels {
-                    ui.label(channel.name.clone());
-                }
+                ui.label("Chat");
+                ui.end_row();
+                ui.label("Username: ");
+                ui.label(self.user.username.clone());
             });
-
-            ui.separator();
-            */
+        });
+        egui::CentralPanel::default().show(ctx, |ui| {
             ui.label("Messages");
             ui.separator();
             // put input at the bottom
+            egui::containers::ScrollArea::vertical().show(ui, |ui| {
+                // show the messages
+                for message in self.messages.iter() {
+                    // convert payload to messagepayload
+                    let payload = MessagePayload::from_bytes(message.payload.clone());
+                    ui.label(format!(
+                        "[{}]{}: {}",
+                        common::id::to_formatted_timestamp(message.id, "%H:%M:%S"),
+                        payload.username,
+                        payload.message
+                    ));
+                }
+            });
             ui.with_layout(Layout::bottom_up(egui::Align::TOP), |ui| {
                 // show the input
                 ui.horizontal(|ui| {
@@ -65,7 +72,7 @@ impl eframe::App for ChatApp {
                             self.user.clone().username,
                             self.next_message.clone(),
                         )
-                        .to_bson();
+                        .to_bytes();
                         let message = Message::new(common::message::MessageType::Message, payload);
                         self.tx.send(message.clone()).unwrap();
                         self.messages.push(message);
@@ -74,19 +81,7 @@ impl eframe::App for ChatApp {
                         
                     }
                 });
-                // show the messages
-                self.messages.reverse();
-                for message in self.messages.iter() {
-                    // convert payload to messagepayload
-                    let payload = MessagePayload::from_bson(message.payload.clone());
-                    ui.label(format!(
-                        "[{}]{}: {}",
-                        common::id::to_timestamp_string(message.id),
-                        payload.username,
-                        payload.message
-                    ));
-                }
-                self.messages.reverse();
+
             });
         });
     }

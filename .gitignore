@@ -5,3 +5,4 @@
 *.bson
 */.DS_Store
 .vscode
+*.dat

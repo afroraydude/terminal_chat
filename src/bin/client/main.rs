@@ -24,12 +24,11 @@ fn setup() -> User {
         let file = File::open("me.dat").unwrap();
         let reader = BufReader::new(file);
         // convert from bson to user
-        let user: User = bson::from_reader(reader).unwrap();
+        let user: User = rmp_serde::from_read(reader).unwrap();
         return user;
     }
 
     // else, create new user
-
     // ask for the username
     let mut username = String::new();
     println!("Enter your username: ");
@@ -43,7 +42,7 @@ fn setup() -> User {
     // save the user to a file
     let mut file = std::fs::File::create("me.dat").unwrap();
 
-    file.write_all(&user.to_bson()).unwrap();
+    file.write_all(&user.to_bytes()).unwrap();
 
     user
 }
@@ -83,20 +82,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 if let Some(Ok(msg)) = msg {
                     let raw: Vec<u8> = msg.to_vec();
 
-                    let message = Message::from_bson(raw.clone());
+                    let message = Message::from_bytes(raw.clone());
 
                     match message.message_type {
                         MessageType::Message => {
 
                             // get message payload
-                            let message_payload: MessagePayload = MessagePayload::from_bson(message.payload);
+                            let message_payload: MessagePayload = MessagePayload::from_bytes(message.payload);
 
                             // get the message
                             println!("[{}]{}: {}", id::to_timestamp_string(message.id), message_payload.username, message_payload.message);
                         },
                         MessageType::ConnectionReceive => {
-                            let login_message = Message::new(MessageType::Login, user.clone().to_bson());
-                            sink.send(Bytes::from(login_message.to_bson())).await?;
+                            let login_message = Message::new(MessageType::Login, user.clone().to_bytes());
+                            sink.send(Bytes::from(login_message.to_bytes())).await?;
                         },
                         MessageType::Unknown => {
                             debug!("Received unknown message type");
@@ -121,8 +120,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     for chunk in chunks {
                         let string = String::from_utf8(chunk.to_vec()).unwrap();
                         let message_payload = MessagePayload::new(user.clone().username, string);
-                        let message = Message::new(MessageType::Message, message_payload.to_bson());
-                        sink.send(Bytes::from(message.to_bson())).await?;
+                        let message = Message::new(MessageType::Message, message_payload.to_bytes());
+                        sink.send(Bytes::from(message.to_bytes())).await?;
                     }
                 } else {
                     break;

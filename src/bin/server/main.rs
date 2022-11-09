@@ -66,7 +66,7 @@ async fn handle_connection(
 ) -> Result<(), Box<dyn Error>> {
     let mut bytes = Framed::new(stream, BytesCodec::new());
 
-    let conn_message = Message::new(MessageType::ConnectionReceive, vec![]).to_bson();
+    let conn_message = Message::new(MessageType::ConnectionReceive, vec![]).to_bytes();
     bytes.send(Bytes::from(conn_message)).await?;
 
     // get the login message
@@ -83,7 +83,7 @@ async fn handle_connection(
     };
 
     // deserialize the login message
-    let login_message = Message::from_bson(login_message.to_vec());
+    let login_message = Message::from_bytes(login_message.to_vec());
     if login_message.message_type != MessageType::Login {
         debug!("Client sent invalid message type");
         debug!("Expected: Login");
@@ -94,7 +94,7 @@ async fn handle_connection(
     let mut client = client::Client::new(server.clone(), bytes).await?;
 
     // get the user from the login message
-    let user = User::from_bson(login_message.payload);
+    let user = User::from_bytes(login_message.payload);
     if user.username == "Unknown" {
         debug!("Client sent invalid username");
         return Ok(());
@@ -102,9 +102,9 @@ async fn handle_connection(
         debug!("Client logged in as {}", user.username);
         let mut state = server.lock().await;
         let message_payload = format!("{} has joined the server", user.username);
-        let message_payload = MessagePayload::new("SERVER".to_string(), message_payload).to_bson();
+        let message_payload = MessagePayload::new("SERVER".to_string(), message_payload).to_bytes();
         let message = Message::new(MessageType::Message, message_payload);
-        state.broadcast(addr, message.to_bson()).await;
+        state.broadcast(addr, message.to_bytes()).await;
     }
 
     loop {
@@ -116,11 +116,11 @@ async fn handle_connection(
             result = client.bytes.next() => {
                 match result {
                     Some(Ok(bytes)) => {
-                        let message = Message::from_bson(bytes.to_vec());
+                        let message = Message::from_bytes(bytes.to_vec());
                         match message.message_type {
                             MessageType::Message => {
                                 let mut state = server.lock().await;
-                                state.broadcast(addr, message.to_bson()).await;
+                                state.broadcast(addr, message.to_bytes()).await;
                             }
                             _ => {
                                 debug!("Client sent invalid message type");
@@ -145,8 +145,8 @@ async fn handle_connection(
         state.remove_client(addr);
 
         let msg = format!("User has left the chat");
-        let message = Message::new(MessageType::Message, MessagePayload::new("SERVER".to_string(), msg).to_bson());
-        state.broadcast(addr, message.to_bson()).await;
+        let message = Message::new(MessageType::Message, MessagePayload::new("SERVER".to_string(), msg).to_bytes());
+        state.broadcast(addr, message.to_bytes()).await;
     }
 
 
