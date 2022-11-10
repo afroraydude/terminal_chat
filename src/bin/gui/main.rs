@@ -34,7 +34,7 @@ fn setup() -> User {
     }
 
     // else, create new user
-    let mut app = setup::Setup::default();
+    let app = setup::Setup::default();
     eframe::run_native(
         "Setup",
         eframe::NativeOptions {
@@ -95,16 +95,13 @@ async fn connect(
     mut to_server_rx: UnboundedReceiver<Message>,
     tx: mpsc::Sender<Message>,
 ) -> Result<(), Box<dyn Error>> {
-    // get address from args, or panic
-    let addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "".to_string());
 
-    if addr == "" {
-        log::error!("No address provided");
-        // exit the program
-        std::process::exit(1);
-    }
+    // wait for the user to enter the server address from the gui
+    let raw_bytes = to_server_rx.recv().await.unwrap().payload;
+    // convert the bytes to a string
+    let addr = String::from_utf8(raw_bytes.to_vec()).unwrap();
+    // convert the string to a SocketAddr
+    let addr = addr.parse::<SocketAddr>().unwrap();
 
     let mut stream = TcpStream::connect(addr).await?;
     let (reader, writer) = stream.split();

@@ -26,6 +26,10 @@ impl Setup {
 
         self.user = user;
     }
+
+    fn get_user(&self) -> User {
+        self.user.clone()
+    }
 }
 
 impl Default for Setup {

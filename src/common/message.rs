@@ -13,7 +13,8 @@ pub enum MessageType {
     Unknown,           // will always have empty payload, used when given garbage data
     Message,           // both client -> server and server -> client, used to send a message
     ConnectionReceive, // server -> client, used to send a connection message
-    Login,             // client -> server, used to login
+    Login, // client -> server, used to login
+    Connect, // client -> self, used to connect to the server
 }
 
 impl PartialEq for MessageType {
@@ -23,6 +24,7 @@ impl PartialEq for MessageType {
             (MessageType::Message, MessageType::Message) => true,
             (MessageType::ConnectionReceive, MessageType::ConnectionReceive) => true,
             (MessageType::Login, MessageType::Login) => true,
+            (MessageType::Connect, MessageType::Connect) => true,
             _ => false,
         }
     }

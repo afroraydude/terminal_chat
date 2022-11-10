@@ -13,6 +13,7 @@ pub struct ChatApp {
     pub next_message: String,
     pub tx: UnboundedSender<Message>,
     pub rx: mpsc::Receiver<Message>,
+    setup: bool,
 }
 
 impl ChatApp {
@@ -22,7 +23,8 @@ impl ChatApp {
             messages: Vec::new(),
             next_message: String::new(),
             tx,
-            rx
+            rx,
+            setup: false,
         }
     }
 
@@ -32,10 +34,8 @@ impl ChatApp {
             self.messages.push(message);
         }
     }
-}
 
-impl eframe::App for ChatApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    pub fn update_main_app(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         self.update();
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -95,5 +95,30 @@ impl eframe::App for ChatApp {
                 ui.label("Connected");
             });
         });
+    }
+}
+
+impl eframe::App for ChatApp {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        if self.setup {
+            self.update_main_app(ctx, frame);
+        } else {
+            // ask for socket address
+            egui::CentralPanel::default().show(ctx, |ui| {
+                ui.heading("Welcome to Chat!");
+                ui.add(egui::Label::new("Enter the server to connect to:"));
+                ui.add(egui::TextEdit::singleline(&mut self.next_message));
+                if ui.button("Done").clicked() {
+                    self.setup = true;
+                    // send message to tokio thread
+                    let message = Message::new(
+                        common::message::MessageType::Connect,
+                        self.next_message.clone().into_bytes(),
+                    );
+                    self.tx.send(message).unwrap();
+                    self.next_message = String::new();
+                }
+            });
+        }
     }
 }
