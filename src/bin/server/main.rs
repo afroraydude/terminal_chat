@@ -21,9 +21,18 @@ mod client;
 mod server;
 extern crate common;
 
+fn print_logo() {
+    // load logo from file
+    let logo = include_str!("../../../assets/logo.txt");
+    println!("{}", logo);
+
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     SimpleLogger::init(LevelFilter::Debug, Config::default()).unwrap();
+
+    print_logo();
 
     let mut server = Server::default();
     let state = Arc::new(Mutex::new(server));
