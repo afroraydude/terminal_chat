@@ -50,38 +50,49 @@ impl eframe::App for ChatApp {
             ui.separator();
             // put input at the bottom
             egui::containers::ScrollArea::vertical().show(ui, |ui| {
-                // show the messages
-                for message in self.messages.iter() {
-                    // convert payload to messagepayload
-                    let payload = MessagePayload::from_bytes(message.payload.clone());
-                    ui.label(format!(
-                        "[{}]{}: {}",
-                        common::id::to_formatted_timestamp(message.id, "%H:%M:%S"),
-                        payload.username,
-                        payload.message
-                    ));
+                self.messages.reverse();
+                ui.with_layout(Layout::top_down_justified(egui::Align::TOP), |ui| {
+                    // show the messages
+                    for message in self.messages.iter() {
+                        // convert payload to messagepayload
+                        let payload = MessagePayload::from_bytes(message.payload.clone());
+                        ui.label(format!(
+                            "[{}] {}: {}",
+                            common::id::to_formatted_timestamp(message.id, "%H:%M:%S"),
+                            payload.username,
+                            payload.message
+                        ));
+                    }
+
+                    ui.end_row();
+                });
+                self.messages.reverse();
+                // add spacing
+                ui.label("");
+            });
+        });
+        egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.text_edit_singleline(&mut self.next_message);
+                if ui.button("Send").clicked() {
+                    // send the message
+                    let payload = MessagePayload::new(
+                        self.user.clone().username,
+                        self.next_message.clone(),
+                    )
+                        .to_bytes();
+                    let message = Message::new(common::message::MessageType::Message, payload);
+                    self.tx.send(message.clone()).unwrap();
+                    self.messages.push(message);
+                    // TODO: send message to server
+                    self.next_message = String::new();
+
                 }
             });
-            ui.with_layout(Layout::bottom_up(egui::Align::TOP), |ui| {
-                // show the input
-                ui.horizontal(|ui| {
-                    ui.text_edit_singleline(&mut self.next_message);
-                    if ui.button("Send").clicked() {
-                        // send the message
-                        let payload = MessagePayload::new(
-                            self.user.clone().username,
-                            self.next_message.clone(),
-                        )
-                        .to_bytes();
-                        let message = Message::new(common::message::MessageType::Message, payload);
-                        self.tx.send(message.clone()).unwrap();
-                        self.messages.push(message);
-                        // TODO: send message to server
-                        self.next_message = String::new();
-                        
-                    }
-                });
-
+            ui.horizontal(|ui| {
+                ui.label("Status");
+                ui.end_row();
+                ui.label("Connected");
             });
         });
     }

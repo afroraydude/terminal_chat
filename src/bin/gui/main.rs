@@ -22,33 +22,34 @@ use chat::ChatApp;
 use common::{id, message::{MessagePayload, MessageType, Payload}, message::Message, user::User};
 
 mod chat;
+mod setup;
 
 fn setup() -> User {
     // if file exists, read from file
     if path::Path::new("me.dat").exists() {
         let file = File::open("me.dat").unwrap();
         let reader = BufReader::new(file);
-        // convert from bson to user
         let user: User = rmp_serde::from_read(reader).unwrap();
         return user;
     }
 
     // else, create new user
+    let mut app = setup::Setup::default();
+    eframe::run_native(
+        "Setup",
+        eframe::NativeOptions {
+            initial_window_size: Some(egui::Vec2::new(300.0, 100.0)),
+            ..Default::default()
+        },
+        Box::new(|_ctx| Box::new(app)),
+    );
 
-    // ask for the username
-    let mut username = String::new();
-    println!("Enter your username: ");
-    io::stdin()
-        .read_line(&mut username)
-        .expect("Failed to read line");
-    let username = username.trim().to_string();
-
-    let user = User::new(username);
-
-    // save the user to a file
-    let mut file = std::fs::File::create("me.dat").unwrap();
-
-    file.write_all(&user.to_bytes()).unwrap();
+    // load the user from the file
+    let file = File::open("me.dat").unwrap();
+    let reader = BufReader::new(file);
+    let user: User = rmp_serde::from_read(reader).unwrap_or_else(
+        |e| panic!("Failed to load user from file: {}. Check your permissions maybe?", e),
+    );
 
     user
 }
