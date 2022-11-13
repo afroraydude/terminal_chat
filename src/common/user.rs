@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct User {
     pub id: u64,
     pub username: String,
+    pub public_key: Vec<u8>,
 }
 
 impl PartialEq for User {
@@ -14,13 +15,13 @@ impl PartialEq for User {
 }
 
 impl User {
-    pub fn new(username: String) -> User {
+    pub fn new(username: String, public_key: Vec<u8>) -> User {
         let id = create_id(IdType::User);
-        User { id, username }
+        User { id, username, public_key }
     }
 
-    pub fn create_all(id: u64, username: String) -> User {
-        User { id, username }
+    pub fn create_all(id: u64, username: String, public_key: Vec<u8>) -> User {
+        User { id, username, public_key }
     }
 
     pub fn change_username(&mut self, username: String) {
@@ -35,13 +36,13 @@ impl User {
         // try to deserialize the bson, if it fails, return an unknown user
         match rmp_serde::from_slice(&bson) {
             Ok(user) => user,
-            Err(_) => User::new("Unknown".to_string()),
+            Err(_) => User::new("Unknown".to_string(), Vec::new()),
         }
     }
 }
 
 impl Clone for User {
     fn clone(&self) -> Self {
-        User::create_all(self.id, self.username.clone())
+        User::create_all(self.id, self.username.clone(), self.public_key.clone())
     }
 }
