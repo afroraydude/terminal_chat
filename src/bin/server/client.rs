@@ -7,12 +7,14 @@ use tokio::sync::{mpsc, Mutex};
 use common::user::User;
 use tokio::net::TcpStream;
 use tokio_util::codec::{BytesCodec, Framed};
+use x25519_dalek::{PublicKey, StaticSecret};
 
 use crate::server::{Server, Rx};
 
 pub struct Client {
     pub bytes: Framed<TcpStream, BytesCodec>,
     pub rx: Rx,
+    pub shared_key: Vec<u8>,
 }
 
 impl Client {
@@ -27,6 +29,7 @@ impl Client {
         let client = Client {
             bytes,
             rx,
+            shared_key: Vec::new(),
         };
 
         server.lock().await.add_client(addr, tx);
@@ -46,5 +49,9 @@ impl Client {
         }
 
         Ok(())
+    }
+
+    pub fn create_shared_key(&mut self, secret_key: StaticSecret, public_key: PublicKey) {
+        self.shared_key = secret_key.diffie_hellman(&public_key).as_bytes().to_vec();
     }
 }

@@ -6,7 +6,8 @@ use x25519_dalek::{StaticSecret, PublicKey};
 pub struct Client {
     user: User,
     channels: Vec<Channel>,
-    secret: Vec<u8>
+    secret: Vec<u8>,
+    shared_key: Vec<u8>,
 }
 
 impl Client {
@@ -14,7 +15,8 @@ impl Client {
         Self {
             user,
             channels: Vec::new(),
-            secret: Client::serialize_secret(secret)
+            secret: Client::serialize_secret(secret),
+            shared_key: Vec::new(),
         }
     }
 
@@ -32,5 +34,10 @@ impl Client {
             secret_bytes[i] = *byte;
         }
         StaticSecret::from(secret_bytes)
+    }
+
+    pub fn create_shared_key(&mut self, public_key: PublicKey) {
+        let secret_key = Client::deserialize_secret(self.secret.clone());
+        self.shared_key = secret_key.diffie_hellman(&public_key).as_bytes().to_vec();
     }
 }
