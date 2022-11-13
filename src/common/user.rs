@@ -1,5 +1,6 @@
 use crate::id::{create_id, IdType};
 use serde::{Deserialize, Serialize};
+use x25519_dalek::{PublicKey, StaticSecret};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
@@ -38,6 +39,19 @@ impl User {
             Ok(user) => user,
             Err(_) => User::new("Unknown".to_string(), Vec::new()),
         }
+    }
+
+    pub fn deserialize_public_key(public_key: Vec<u8>) -> PublicKey {
+        let mut public_key_bytes = [0u8; 32];
+        for (i, byte) in public_key.iter().enumerate() {
+            public_key_bytes[i] = *byte;
+        }
+        PublicKey::from(public_key_bytes)
+    }
+
+    pub fn create_public_key(secret: StaticSecret) -> Vec<u8> {
+        let public_key = PublicKey::from(&secret);
+        public_key.as_bytes().to_vec()
     }
 }
 

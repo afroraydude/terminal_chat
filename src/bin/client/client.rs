@@ -1,6 +1,7 @@
+use bson::serde_helpers::serialize_u32_as_timestamp;
 use common::{user::User,  channel::Channel};
-use x25519_dalek::{StaticSecret, PublicKey};
 use rand_core::os::OsRng;
+use x25519_dalek::{StaticSecret, PublicKey};
 
 pub struct Client {
     user: User,
@@ -9,11 +10,11 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(user: User) -> Self {
+    pub fn new(user: User, secret: StaticSecret) -> Self {
         Self {
             user,
             channels: Vec::new(),
-            secret: Vec::new()
+            secret: Client::serialize_secret(secret)
         }
     }
 
@@ -31,10 +32,5 @@ impl Client {
             secret_bytes[i] = *byte;
         }
         StaticSecret::from(secret_bytes)
-    }
-
-    pub fn create_public_key(secret: StaticSecret) -> Vec<u8> {
-        let public_key = PublicKey::from(&secret);
-        public_key.as_bytes().to_vec()
     }
 }
