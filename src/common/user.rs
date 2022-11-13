@@ -16,9 +16,9 @@ impl PartialEq for User {
 }
 
 impl User {
-    pub fn new(username: String, public_key: Vec<u8>) -> User {
+    pub fn new(username: String) -> User {
         let id = create_id(IdType::User);
-        User { id, username, public_key }
+        User { id, username, public_key: Vec::new() }
     }
 
     pub fn create_all(id: u64, username: String, public_key: Vec<u8>) -> User {
@@ -37,7 +37,7 @@ impl User {
         // try to deserialize the bson, if it fails, return an unknown user
         match rmp_serde::from_slice(&bson) {
             Ok(user) => user,
-            Err(_) => User::new("Unknown".to_string(), Vec::new()),
+            Err(_) => User::new("Unknown".to_string()),
         }
     }
 
@@ -52,6 +52,10 @@ impl User {
     pub fn create_public_key(secret: StaticSecret) -> Vec<u8> {
         let public_key = PublicKey::from(&secret);
         public_key.as_bytes().to_vec()
+    }
+
+    pub fn set_public_key(&mut self, public_key: Vec<u8>) {
+        self.public_key = public_key;
     }
 }
 

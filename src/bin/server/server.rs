@@ -1,5 +1,6 @@
 use common::{channel::Channel, user::User};
 use log::{debug, error};
+use x25519_dalek::{PublicKey, StaticSecret};
 use std::{collections::HashMap, net::SocketAddr};
 use tokio::sync::mpsc;
 
@@ -11,6 +12,8 @@ pub type Rx = mpsc::UnboundedReceiver<Vec<u8>>;
 pub struct Server {
     channels: HashMap<String, Channel>,
     clients: HashMap<SocketAddr, Tx>,
+    shared_keys: HashMap<SocketAddr, Vec<u8>>,
+    private_key: Vec<u8>,
 }
 
 impl Server {
@@ -42,6 +45,19 @@ impl Server {
             }
         }
     }
+
+    pub fn create_private_key() -> Vec<u8> {
+        let secret_key = StaticSecret::new(rand_core::os::OsRng);
+        secret_key.to_bytes().to_vec()
+    }
+
+    pub fn create_shared_key(&mut self, addr: SocketAddr, pub_key: PublicKey) {
+        let mut key_bytes = [0u8; 32];
+        key_bytes.copy_from_slice(pub_key.as_bytes());
+        let private_key = x25519_dalek::StaticSecret::from(key_bytes);
+        let shared_key = private_key.diffie_hellman(&pub_key).as_bytes().to_vec();
+        self.shared_keys.insert(addr, shared_key);
+    }
 }
 
 impl Default for Server {
@@ -57,6 +73,8 @@ impl Default for Server {
         Server {
             channels: default_channels,
             clients: HashMap::new(),
+            shared_keys: HashMap::new(),
+            private_key: Server::create_private_key(),
         }
     }
 }
