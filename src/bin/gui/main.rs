@@ -65,7 +65,9 @@ async fn main() {
 
     let (tx2, rx2) = mpsc::channel();
 
-    let app = chat::ChatApp::new(user.clone(), tx, rx2);
+    let mut app = chat::ChatApp::new(user.clone(), tx, rx2);
+
+    app.create_secret(); // create the secret key for the user
 
     // spawn the connect task
     tokio::spawn(async move {

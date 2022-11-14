@@ -4,6 +4,8 @@ use common::{
     user::User,
 };
 use egui::Layout;
+use rand_core::OsRng;
+use x25519_dalek::{StaticSecret, PublicKey};
 use std::sync::mpsc::{Sender, Receiver, self};
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -13,6 +15,8 @@ pub struct ChatApp {
     pub next_message: String,
     pub tx: UnboundedSender<Message>,
     pub rx: mpsc::Receiver<Message>,
+    secret: Vec<u8>,
+    shared_key: Vec<u8>,
     setup: bool,
 }
 
@@ -24,6 +28,8 @@ impl ChatApp {
             next_message: String::new(),
             tx,
             rx,
+            secret: Vec::new(),
+            shared_key: Vec::new(),
             setup: false,
         }
     }
@@ -95,6 +101,26 @@ impl ChatApp {
                 ui.label("Connected");
             });
         });
+    }
+
+    pub fn create_secret(&mut self) {
+        let secret = StaticSecret::new(OsRng);
+        self.secret = secret.to_bytes().to_vec();
+        self.user.set_public_key(PublicKey::from(&secret).to_bytes().to_vec());
+    }
+
+    pub fn deserialize_secret(&self) -> StaticSecret {
+        let mut secret_bytes = [0u8; 32];
+        for (i, byte) in self.secret.iter().enumerate() {
+            secret_bytes[i] = *byte;
+        }
+        StaticSecret::from(secret_bytes)
+    }
+
+    pub fn generate_shared_key(&mut self, public_key: PublicKey) {
+        let secret = self.deserialize_secret();
+        let shared_key = secret.diffie_hellman(&public_key);
+        self.shared_key = shared_key.to_bytes().to_vec();
     }
 }
 
