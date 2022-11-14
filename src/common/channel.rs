@@ -9,6 +9,19 @@ pub struct Channel {
 }
 
 impl Channel {
+    /// Creates a new channel
+    ///
+    /// # Arguments
+    ///
+    /// * `name`: The name of the channel
+    ///
+    /// returns: Channel struct
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let channel = common::channel::Channel::new("test".to_string());
+    /// ```
     pub fn new(name: String) -> Channel {
         Channel {
             name,
@@ -19,6 +32,21 @@ impl Channel {
         }
     }
 
+    /// Adds a user to the channel users list
+    ///
+    /// # Arguments
+    ///
+    /// * `user`: The user to add
+    ///
+    /// returns: None
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut channel = common::channel::Channel::new("test".to_string());
+    /// let user = common::user::User::new("test".to_string());
+    /// channel.add_user(user.id);
+    /// ```
     pub fn add_user(&mut self, user: u64) {
         self.users.push(user);
     }

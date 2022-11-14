@@ -103,24 +103,16 @@ impl ChatApp {
         });
     }
 
-    pub fn create_secret(&mut self) {
-        let secret = StaticSecret::new(OsRng);
-        self.secret = secret.to_bytes().to_vec();
-        self.user.set_public_key(PublicKey::from(&secret).to_bytes().to_vec());
+    pub fn set_secret(&mut self, secret: Vec<u8>) {
+        self.secret = secret;
     }
 
-    pub fn deserialize_secret(&self) -> StaticSecret {
-        let mut secret_bytes = [0u8; 32];
-        for (i, byte) in self.secret.iter().enumerate() {
-            secret_bytes[i] = *byte;
-        }
-        StaticSecret::from(secret_bytes)
+    pub fn set_shared_key(&mut self, shared_key: Vec<u8>) {
+        self.shared_key = shared_key;
     }
 
-    pub fn generate_shared_key(&mut self, public_key: PublicKey) {
-        let secret = self.deserialize_secret();
-        let shared_key = secret.diffie_hellman(&public_key);
-        self.shared_key = shared_key.to_bytes().to_vec();
+    pub fn get_shared_key(&self) -> Vec<u8> {
+        self.shared_key.clone()
     }
 }
 

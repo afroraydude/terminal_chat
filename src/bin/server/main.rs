@@ -1,31 +1,31 @@
-use bytes::Bytes;
-use common::message::{Message, MessageType, MessagePayload, Payload};
-use common::user::User;
-use log::{info, error, debug};
-use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{mpsc, Mutex};
-use tokio_stream::StreamExt;
-use tokio_util::codec::{Framed, BytesCodec};
+extern crate common;
 
-use futures::SinkExt;
 use std::env;
 use std::error::Error;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use bytes::Bytes;
+use futures::SinkExt;
+use log::{debug, error, info};
 use simplelog::*;
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::{mpsc, Mutex};
+use tokio_stream::StreamExt;
+use tokio_util::codec::{BytesCodec, Framed};
+use common::crypt;
 
+use common::message::{Message, MessagePayload, MessageType, Payload};
+use common::user::User;
 use server::Server;
 
 mod client;
 mod server;
-extern crate common;
 
 fn print_logo() {
     // load logo from file
     let logo = "Yuttari";
     println!("{}", logo);
-
 }
 
 #[tokio::main]
@@ -75,7 +75,15 @@ async fn handle_connection(
 ) -> Result<(), Box<dyn Error>> {
     let mut bytes = Framed::new(stream, BytesCodec::new());
 
-    let conn_message = Message::new(MessageType::ConnectionReceive, vec![]).to_bytes();
+    let priv_key = crypt::deserialize_private_key(server.lock().await.get_private_key());
+
+    let pub_key = crypt::create_public_key(priv_key.clone());
+
+    let conn_message = Message::new(MessageType::ConnectionReceive, crypt::serialize_public_key(pub_key)).to_bytes();
+
+    let priv_key = vec![0u8; 0];
+    let pub_key = vec![0u8; 0];
+
     bytes.send(Bytes::from(conn_message)).await?;
 
     // get the login message
@@ -109,7 +117,12 @@ async fn handle_connection(
         return Ok(());
     } else {
         debug!("Client logged in as {}", user.username);
+        let pub_key = User::deserialize_public_key(user.public_key);
         let mut state = server.lock().await;
+        let private_key = crypt::deserialize_private_key(state.get_private_key());
+        let shared_key = crypt::create_shared_key(private_key, pub_key);
+        state.add_shared_key(addr, shared_key);
+        debug!("Shared key created, {:?}", state.get_shared_key(addr));
         let message_payload = format!("{} has joined the server", user.username);
         let message_payload = MessagePayload::new("SERVER".to_string(), message_payload).to_bytes();
         let message = Message::new(MessageType::Message, message_payload);
@@ -149,14 +162,12 @@ async fn handle_connection(
         }
     }
 
-    {
-        let mut state = server.lock().await;
-        state.remove_client(addr);
+    let mut state = server.lock().await;
+    state.remove_client(addr);
 
-        let msg = format!("User has left the chat");
-        let message = Message::new(MessageType::Message, MessagePayload::new("SERVER".to_string(), msg).to_bytes());
-        state.broadcast(addr, message.to_bytes()).await;
-    }
+    let msg = format!("User has left the chat");
+    let message = Message::new(MessageType::Message, MessagePayload::new("SERVER".to_string(), msg).to_bytes());
+    state.broadcast(addr, message.to_bytes()).await;
 
 
     Ok(())

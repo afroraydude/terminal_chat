@@ -19,7 +19,7 @@ use tokio_stream::StreamExt;
 use tokio_util::codec::{BytesCodec, Framed, FramedRead, FramedWrite};
 
 use chat::ChatApp;
-use common::{id, message::{MessagePayload, MessageType, Payload}, message::Message, user::User};
+use common::{crypt, id, message::{MessagePayload, MessageType, Payload}, message::Message, user::User};
 
 mod chat;
 mod setup;
@@ -59,7 +59,7 @@ async fn main() {
     SimpleLogger::init(LevelFilter::Debug, Config::default()).unwrap();
 
 
-    let user = setup();
+    let mut user = setup();
 
     let (tx, rx) = unbounded_channel();
 
@@ -67,7 +67,12 @@ async fn main() {
 
     let mut app = chat::ChatApp::new(user.clone(), tx, rx2);
 
-    app.create_secret(); // create the secret key for the user
+    let priv_key = crypt::create_private_key();
+
+    let pub_key = crypt::create_public_key(priv_key.clone());
+
+    user.set_public_key(crypt::serialize_public_key(pub_key.clone()));
+
 
     // spawn the connect task
     tokio::spawn(async move {

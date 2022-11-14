@@ -1,7 +1,7 @@
 use std::{error::{Error, self}, io::{self, Write, BufReader}, net::SocketAddr, fs::File, path, thread};
 
 use client::Client;
-use common::{user::User, message::{self, MessagePayload, Payload}, id};
+use common::{user::User, message::{self, MessagePayload, Payload}, id, crypt};
 use futures::{channel::mpsc, future::InspectOk, StreamExt};
 use log::debug;
 use tokio_util::codec::{Framed, BytesCodec, FramedWrite, FramedRead};
@@ -54,9 +54,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // get the user either from a file or from the user
     let mut user = setup();
 
-    let secret_key = crate::client::Client::create_secret();
+    let secret_key = crypt::create_private_key();
 
-    user.set_public_key(User::create_public_key(secret_key.clone()));
+    let public_key = crypt::create_public_key(secret_key.clone());
+
+    user.set_public_key(crypt::serialize_public_key(public_key));
 
     let mut client = Client::new(user.clone(), secret_key.clone());
 
@@ -100,6 +102,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         MessageType::ConnectionReceive => {
                             let login_message = Message::new(MessageType::Login, user.clone().to_bytes());
                             sink.send(Bytes::from(login_message.to_bytes())).await?;
+                            // create shared secret
+                            let pub_key = crypt::deserialize_public_key(message.payload);
+                            let shared_secret = crypt::create_shared_key(secret_key.clone(), pub_key);
+                            client.set_shared_key(shared_secret);
+                            debug!("Shared secret: {:?}", client.get_shared_key());
                         },
                         MessageType::Unknown => {
                             debug!("Received unknown message type");

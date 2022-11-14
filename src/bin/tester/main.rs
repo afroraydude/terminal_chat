@@ -4,24 +4,42 @@ use std::io::Write;
 use common::message::{Message, MessageType};
 use log::{debug, LevelFilter};
 use simplelog::{SimpleLogger, Config};
+use common::crypt;
 
 fn main() {
     SimpleLogger::init(LevelFilter::Debug, Config::default()).unwrap();
-    // loop through input
-    loop {
-        // get input
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        input = input.trim().parse().unwrap();
-        // create a message from the input
-        let message = Message::new(MessageType::Message, input.as_bytes().to_vec());
+    // create two key pairs
+    let private_key1 = crypt::create_private_key();
+    let public_key1 = crypt::create_public_key(private_key1.clone());
+    let private_key2 = crypt::create_private_key();
+    let public_key2 = crypt::create_public_key(private_key2.clone());
 
-        // print debug "Message sent. Message ID: {id}, Message Type: {type}, Message Length: {length}"
-        debug!("Message sent. Message ID: {}, Message Type: {:?}, Message Length: {}", message.id, message.message_type, message.length());
+    // create shared key from the two key pairs
+    let shared_key1 = crypt::create_shared_key(private_key1, public_key2);
+    let shared_key2 = crypt::create_shared_key(private_key2, public_key1);
 
-        // test the id by getting its timestamp
-        debug!("Message timestamp: {}", common::id::to_timestamp(message.id));
-        // convert timestamp (unix epoch) to human readable
-        debug!("Message timestamp (human readable): {}", common::id::to_timestamp_string(message.id));
+    // verify that the shared keys are the same
+    if shared_key1 == shared_key2 {
+        debug!("Shared keys are the same");
+    } else {
+        debug!("Shared keys are not the same");
+    }
+
+    let original_message = "Hello, world!".to_string();
+
+    // encrypt the message
+    let encrypted_message = crypt::encrypt_message(original_message.clone().as_bytes().to_vec(), shared_key1.clone());
+    let decrypted_message = crypt::decrypt_message(encrypted_message.clone(), shared_key2.clone());
+
+    // print the message
+    debug!("Original message: {}", original_message);
+    debug!("Encrypted message: {:?}", encrypted_message);
+    debug!("Decrypted message: {:?}", decrypted_message);
+
+    // check if the message is the same
+    if original_message == String::from_utf8(decrypted_message.clone()).unwrap() {
+        debug!("Messages are the same");
+    } else {
+        debug!("Messages are not the same");
     }
 }

@@ -1,4 +1,4 @@
-use common::{channel::Channel, user::User};
+use common::{channel::Channel, crypt, user::User};
 use log::{debug, error};
 use x25519_dalek::{PublicKey, StaticSecret};
 use std::{collections::HashMap, net::SocketAddr};
@@ -46,17 +46,16 @@ impl Server {
         }
     }
 
-    pub fn create_private_key() -> Vec<u8> {
-        let secret_key = StaticSecret::new(rand_core::OsRng);
-        secret_key.to_bytes().to_vec()
+    pub fn add_shared_key(&mut self, addr: SocketAddr, shared_key: Vec<u8>) {
+        self.shared_keys.insert(addr, shared_key);
     }
 
-    pub fn create_shared_key(&mut self, addr: SocketAddr, pub_key: PublicKey) {
-        let mut key_bytes = [0u8; 32];
-        key_bytes.copy_from_slice(pub_key.as_bytes());
-        let private_key = x25519_dalek::StaticSecret::from(key_bytes);
-        let shared_key = private_key.diffie_hellman(&pub_key).as_bytes().to_vec();
-        self.shared_keys.insert(addr, shared_key);
+    pub fn get_private_key(&self) -> Vec<u8> {
+        self.private_key.clone()
+    }
+
+    pub fn get_shared_key(&self, addr: SocketAddr) -> Vec<u8> {
+        self.shared_keys.get(&addr).unwrap().clone()
     }
 }
 
@@ -74,7 +73,7 @@ impl Default for Server {
             channels: default_channels,
             clients: HashMap::new(),
             shared_keys: HashMap::new(),
-            private_key: Server::create_private_key(),
+            private_key: crypt::serialize_private_key(crypt::create_private_key())
         }
     }
 }

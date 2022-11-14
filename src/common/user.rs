@@ -33,9 +33,9 @@ impl User {
         rmp_serde::to_vec(self).unwrap()
     }
 
-    pub fn from_bytes(bson: Vec<u8>) -> User {
+    pub fn from_bytes(raw: Vec<u8>) -> User {
         // try to deserialize the bson, if it fails, return an unknown user
-        match rmp_serde::from_slice(&bson) {
+        match rmp_serde::from_slice(&raw) {
             Ok(user) => user,
             Err(_) => User::new("Unknown".to_string()),
         }
@@ -47,11 +47,6 @@ impl User {
             public_key_bytes[i] = *byte;
         }
         PublicKey::from(public_key_bytes)
-    }
-
-    pub fn create_public_key(secret: StaticSecret) -> Vec<u8> {
-        let public_key = PublicKey::from(&secret);
-        public_key.as_bytes().to_vec()
     }
 
     pub fn set_public_key(&mut self, public_key: Vec<u8>) {
