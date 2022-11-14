@@ -23,7 +23,7 @@ extern crate common;
 
 fn print_logo() {
     // load logo from file
-    let logo = include_str!("../../../assets/logo.txt");
+    let logo = "Yuttari";
     println!("{}", logo);
 
 }

@@ -1,6 +1,6 @@
 use bson::serde_helpers::serialize_u32_as_timestamp;
 use common::{user::User,  channel::Channel};
-use rand_core::os::OsRng;
+use rand_core::OsRng;
 use x25519_dalek::{StaticSecret, PublicKey};
 
 pub struct Client {

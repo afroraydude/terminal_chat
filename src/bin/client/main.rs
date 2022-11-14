@@ -52,13 +52,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     SimpleLogger::init(LevelFilter::Debug, Config::default()).unwrap();
 
     // get the user either from a file or from the user
-    let user = setup();
+    let mut user = setup();
 
     let secret_key = crate::client::Client::create_secret();
 
-    user.set_public_key(User::create_public_key(secret_key));
+    user.set_public_key(User::create_public_key(secret_key.clone()));
 
-    let mut client = Client::new(user.clone(), secret_key);
+    let mut client = Client::new(user.clone(), secret_key.clone());
 
     let stdin = FramedRead::new(tokio::io::stdin(), BytesCodec::new());
     let mut stdin = stdin.map(|i| i.map(BytesMut::freeze));

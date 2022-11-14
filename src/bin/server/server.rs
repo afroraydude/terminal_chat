@@ -47,7 +47,7 @@ impl Server {
     }
 
     pub fn create_private_key() -> Vec<u8> {
-        let secret_key = StaticSecret::new(rand_core::os::OsRng);
+        let secret_key = StaticSecret::new(rand_core::OsRng);
         secret_key.to_bytes().to_vec()
     }
 
