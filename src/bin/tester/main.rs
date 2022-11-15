@@ -28,16 +28,37 @@ fn main() {
     let original_message = "Hello, world!".to_string();
 
     // encrypt the message
-    let encrypted_message = crypt::encrypt_message(original_message.clone().as_bytes().to_vec(), shared_key1.clone());
-    let decrypted_message = crypt::decrypt_message(encrypted_message.clone(), shared_key2.clone());
+    let encrypted_message = crypt::encrypt_data(original_message.clone().as_bytes().to_vec(), shared_key1.clone());
+    let decrypted_message = crypt::decrypt_data(encrypted_message.clone(), shared_key2.clone());
 
     // print the message
     debug!("Original message: {}", original_message);
     debug!("Encrypted message: {:?}", encrypted_message);
     debug!("Decrypted message: {:?}", decrypted_message);
+    debug!("Decrypted message: {}", String::from_utf8(decrypted_message.clone()).unwrap());
 
     // check if the message is the same
     if original_message == String::from_utf8(decrypted_message.clone()).unwrap() {
+        debug!("Messages are the same");
+    } else {
+        debug!("Messages are not the same");
+    }
+
+    // create a message of random bytes
+    let mut random_message = String::new();
+    for _ in 0..8192 {
+        let random_number = rand::random::<u8>();
+        random_message.push(random_number as char);
+    }
+
+    // encrypt the message
+    let encrypted_message = crypt::encrypt_data(random_message.clone().as_bytes().to_vec(), shared_key1.clone());
+    let decrypted_message = crypt::decrypt_data(encrypted_message.clone(), shared_key2.clone());
+
+    debug!("test 2");
+
+    // check if the message is the same
+    if random_message == String::from_utf8(decrypted_message.clone()).unwrap() {
         debug!("Messages are the same");
     } else {
         debug!("Messages are not the same");

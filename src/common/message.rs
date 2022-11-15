@@ -7,6 +7,7 @@ use std::task::Poll;
 use crate::id::create_id;
 use crate::id::IdType;
 use serde::{Deserialize, Serialize};
+use crate::crypt;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum MessageType {
@@ -79,6 +80,8 @@ impl Message {
 pub trait Payload {
     fn to_bytes(&self) -> Vec<u8>;
     fn from_bytes(bytes: Vec<u8>) -> Self;
+    fn encrypt(&self, key: Vec<u8>) -> Vec<u8>;
+    fn decrypt(&self, key: Vec<u8>) -> Vec<u8>;
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -105,5 +108,13 @@ impl Payload for MessagePayload {
         rmp_serde::from_slice(&bytes).unwrap_or_else(
             |_| MessagePayload::new("".to_string(), "".to_string())
         )
+    }
+
+    fn encrypt(&self, key: Vec<u8>) -> Vec<u8> {
+        crypt::encrypt_data(self.to_bytes(), key)
+    }
+
+    fn decrypt(&self, key: Vec<u8>) -> Vec<u8> {
+        crypt::decrypt_data(self.to_bytes(), key)
     }
 }

@@ -1,6 +1,6 @@
 use crypto::aes;
 use crypto::aes::KeySize;
-use crypto::buffer::{RefReadBuffer, RefWriteBuffer};
+use crypto::buffer::{ReadBuffer, RefReadBuffer, RefWriteBuffer, WriteBuffer};
 use crypto::symmetriccipher::{Decryptor, Encryptor};
 use log::debug;
 use rand_core::RngCore;
@@ -47,10 +47,62 @@ pub fn create_public_key(private_key: StaticSecret) -> PublicKey {
    PublicKey::from(&private_key)
 }
 
-pub fn encrypt_message(message: Vec<u8>, shared_key: Vec<u8>) -> Vec<u8> {
-
+pub fn encrypt_data(data: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    let mut iv = [0u8; 16];
+    rand_core::OsRng.fill_bytes(&mut iv);
+    let mut encrypted_data = vec![];
+    let mut encryptor = aes::cbc_encryptor(
+        KeySize::KeySize256,
+        &key,
+        &iv,
+        crypto::blockmodes::PkcsPadding,
+    );
+    let mut read_buffer = RefReadBuffer::new(&data);
+    let mut buffer = [0; 4096];
+    let mut write_buffer = RefWriteBuffer::new(&mut buffer);
+    loop {
+        let result = encryptor.encrypt(&mut read_buffer, &mut write_buffer, true).unwrap();
+        encrypted_data.extend(
+            write_buffer
+                .take_read_buffer()
+                .take_remaining()
+                .iter()
+                .map(|&i| i),
+        );
+        match result {
+            crypto::buffer::BufferResult::BufferUnderflow => break,
+            crypto::buffer::BufferResult::BufferOverflow => {}
+        }
+    }
+    encrypted_data.extend_from_slice(&iv);
+    encrypted_data
 }
 
-pub fn decrypt_message(encrypted_message: Vec<u8>, shared_key: Vec<u8>) -> Vec<u8> {
-
+pub fn decrypt_data(data: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    let mut decrypted_data = vec![];
+    let mut decryptor = aes::cbc_decryptor(
+        KeySize::KeySize256,
+        &key,
+        &data[data.len() - 16..],
+        crypto::blockmodes::PkcsPadding,
+    );
+    let mut read_buffer = RefReadBuffer::new(&data[..data.len() - 16]);
+    debug!("read buffer: {}", data.len() - 16);
+    let mut buffer = [0; 4096];
+    let mut write_buffer = RefWriteBuffer::new(&mut buffer);
+    loop {
+        let result = decryptor.decrypt(&mut read_buffer, &mut write_buffer, true).unwrap();
+        decrypted_data.extend(
+            write_buffer
+                .take_read_buffer()
+                .take_remaining()
+                .iter()
+                .map(|&i| i),
+        );
+        match result {
+            crypto::buffer::BufferResult::BufferUnderflow => break,
+            crypto::buffer::BufferResult::BufferOverflow => {}
+        }
+    }
+    decrypted_data
 }
