@@ -91,8 +91,7 @@ pub struct MessagePayload {
 }
 
 impl MessagePayload {
-    pub fn new(username: String, message: String) -> MessagePayload {
-        let message = message.as_bytes().to_vec();
+    pub fn new(username: String, message: Vec<u8>) -> MessagePayload {
         MessagePayload {
             username,
             message,
@@ -107,7 +106,7 @@ impl Payload for MessagePayload {
 
     fn from_bytes(bytes: Vec<u8>) -> MessagePayload {
         rmp_serde::from_slice(&bytes).unwrap_or_else(
-            |_| MessagePayload::new("".to_string(), "".to_string())
+            |_| MessagePayload::new("".to_string(), "00000000".as_bytes().to_vec())
         )
     }
 

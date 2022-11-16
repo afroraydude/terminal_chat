@@ -34,15 +34,24 @@ impl Server {
         self.clients.remove(&addr);
     }
 
-    pub async fn broadcast(&mut self, sender: SocketAddr, msg: Message) {
+    pub async fn broadcast(&mut self, sender: Option<SocketAddr>, msg: Message) {
         // lets grab the payload and decrypt it
         let payload = msg.payload.clone();
         let mut payload = MessagePayload::from_bytes(payload);
-        payload.message = crypt::decrypt_data(payload.message.clone(), self.shared_keys[&sender].clone());
+        // if sender is none, then we are broadcasting a message from the server
+        // so we don't need to decrypt it
+        if let Some(sender) = sender {
+            let shared_key = self.get_shared_key(sender);
+            let decrypted_payload = crypt::decrypt_data(payload.message, self.shared_keys[&sender].clone());
+            payload.message = decrypted_payload;
+        }
 
         for (addr, tx) in self.clients.iter_mut() {
-            if *addr == sender {
-                continue;
+            // if there is a sender, then we don't want to send the message back to them
+            if let Some(sender) = sender {
+                if addr == &sender {
+                    continue;
+                }
             }
             debug!("Sending message to client {}", addr.to_string());
 

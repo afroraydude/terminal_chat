@@ -136,8 +136,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     let chunks = input.as_bytes().chunks(256);
 
                     for chunk in chunks {
-                        let string = String::from_utf8(chunk.to_vec()).unwrap();
-                        let message_payload = MessagePayload::new(user.clone().username, string);
+                        let chunk = crypt::encrypt_data(chunk.to_vec(), client.get_shared_key());
+                        let message_payload = MessagePayload::new(user.clone().username, chunk);
                         let message = Message::new(MessageType::Message, message_payload.to_bytes());
                         sink.send(Bytes::from(message.to_bytes())).await?;
                     }
