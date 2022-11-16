@@ -92,12 +92,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                     match message.message_type {
                         MessageType::Message => {
+                            // load the payload
+                            let mut payload = MessagePayload::from_bytes(message.payload);
 
-                            // get message payload
-                            let message_payload: MessagePayload = MessagePayload::from_bytes(message.payload);
+                            // decrypt the message
+                            payload.decrypt(client.get_shared_key());
 
-                            // get the message
-                            println!("[{}]{}: {}", id::to_timestamp_string(message.id), message_payload.username, message_payload.message);
+                            // load the internal message from the payload
+                            let text = String::from_utf8(payload.message).unwrap();
+
+                            // print the message
+                            /* format in HH:MM:SS */
+                            let timestamp = id::to_formatted_timestamp(message.id, "%H:%M:%S");
+                            println!("[{}] {}: {}", timestamp, payload.username, text);
                         },
                         MessageType::ConnectionReceive => {
                             let login_message = Message::new(MessageType::Login, user.clone().to_bytes());

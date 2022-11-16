@@ -1,8 +1,4 @@
-use common::{
-    channel::{self, Channel},
-    message::{Message, MessagePayload, Payload},
-    user::User,
-};
+use common::{channel::{self, Channel}, crypt, message::{Message, MessagePayload, Payload}, user::User};
 use egui::Layout;
 use rand_core::OsRng;
 use x25519_dalek::{StaticSecret, PublicKey};
@@ -62,11 +58,14 @@ impl ChatApp {
                     for message in self.messages.iter() {
                         // convert payload to messagepayload
                         let payload = MessagePayload::from_bytes(message.payload.clone());
+                        // decrypt the message
+                        let text = crypt::decrypt_data(payload.message, self.shared_key.clone());
+                        let text = String::from_utf8(text).unwrap();
                         ui.label(format!(
                             "[{}] {}: {}",
                             common::id::to_formatted_timestamp(message.id, "%H:%M:%S"),
                             payload.username,
-                            payload.message
+                            text
                         ));
                     }
 
@@ -82,17 +81,16 @@ impl ChatApp {
                 ui.text_edit_singleline(&mut self.next_message);
                 if ui.button("Send").clicked() {
                     // send the message
-                    let payload = MessagePayload::new(
+                    let mut payload = MessagePayload::new(
                         self.user.clone().username,
                         self.next_message.clone(),
-                    )
-                        .to_bytes();
-                    let message = Message::new(common::message::MessageType::Message, payload);
-                    self.tx.send(message.clone()).unwrap();
-                    self.messages.push(message);
-                    // TODO: send message to server
+                    );
+                    let mut message = Message::new(common::message::MessageType::Message, payload.to_bytes());
+                    self.messages.push(message.clone());
+                    payload.message = crypt::encrypt_data(payload.message.clone(), self.shared_key.clone());
+                    message.payload = payload.to_bytes();
+                    self.tx.send(message).unwrap();
                     self.next_message = String::new();
-
                 }
             });
             ui.horizontal(|ui| {

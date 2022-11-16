@@ -80,18 +80,19 @@ impl Message {
 pub trait Payload {
     fn to_bytes(&self) -> Vec<u8>;
     fn from_bytes(bytes: Vec<u8>) -> Self;
-    fn encrypt(&self, key: Vec<u8>) -> Vec<u8>;
-    fn decrypt(&self, key: Vec<u8>) -> Vec<u8>;
+    fn encrypt(&mut self, key: Vec<u8>);
+    fn decrypt(&mut self, key: Vec<u8>);
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MessagePayload {
     pub username: String,
-    pub message: String,
+    pub message: Vec<u8>,
 }
 
 impl MessagePayload {
     pub fn new(username: String, message: String) -> MessagePayload {
+        let message = message.as_bytes().to_vec();
         MessagePayload {
             username,
             message,
@@ -110,11 +111,11 @@ impl Payload for MessagePayload {
         )
     }
 
-    fn encrypt(&self, key: Vec<u8>) -> Vec<u8> {
-        crypt::encrypt_data(self.to_bytes(), key)
+    fn encrypt(&mut self, key: Vec<u8>) {
+        self.message = crypt::encrypt_data(self.message.clone(), key);
     }
 
-    fn decrypt(&self, key: Vec<u8>) -> Vec<u8> {
-        crypt::decrypt_data(self.to_bytes(), key)
+    fn decrypt(&mut self, key: Vec<u8>) {
+        self.message = crypt::decrypt_data(self.message.clone(), key);
     }
 }

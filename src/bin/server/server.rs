@@ -3,6 +3,7 @@ use log::{debug, error};
 use x25519_dalek::{PublicKey, StaticSecret};
 use std::{collections::HashMap, net::SocketAddr};
 use tokio::sync::mpsc;
+use common::message::{Message, MessagePayload, Payload};
 
 use crate::client::Client;
 
@@ -33,14 +34,26 @@ impl Server {
         self.clients.remove(&addr);
     }
 
-    pub async fn broadcast(&mut self, sender: SocketAddr, msg: Vec<u8>) {
+    pub async fn broadcast(&mut self, sender: SocketAddr, msg: Message) {
+        // lets grab the payload and decrypt it
+        let payload = msg.payload.clone();
+        let mut payload = MessagePayload::from_bytes(payload);
+        payload.message = crypt::decrypt_data(payload.message.clone(), self.shared_keys[&sender].clone());
+
         for (addr, tx) in self.clients.iter_mut() {
             if *addr == sender {
                 continue;
             }
             debug!("Sending message to client {}", addr.to_string());
 
-            if let Err(e) = tx.send(msg.clone().into()) {
+            // re-encrypt the message with the shared key of the receiver
+            let mut new_message = msg.clone();
+            let mut new_payload = payload.clone();
+            new_payload.message = crypt::encrypt_data(new_payload.message, self.shared_keys[addr].clone());
+            new_message.payload = new_payload.to_bytes();
+            let message = new_message.to_bytes();
+
+            if let Err(e) = tx.send(message) {
                 error!("Error sending message to client {}: {}", addr.to_string(), e);
             }
         }

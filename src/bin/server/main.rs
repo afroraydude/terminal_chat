@@ -126,7 +126,7 @@ async fn handle_connection(
         let message_payload = format!("{} has joined the server", user.username);
         let message_payload = MessagePayload::new("SERVER".to_string(), message_payload).to_bytes();
         let message = Message::new(MessageType::Message, message_payload);
-        state.broadcast(addr, message.to_bytes()).await;
+        state.broadcast(addr, message).await;
     }
 
     loop {
@@ -142,7 +142,7 @@ async fn handle_connection(
                         match message.message_type {
                             MessageType::Message => {
                                 let mut state = server.lock().await;
-                                state.broadcast(addr, message.to_bytes()).await;
+                                state.broadcast(addr, message).await;
                             }
                             _ => {
                                 debug!("Client sent invalid message type");
@@ -167,7 +167,7 @@ async fn handle_connection(
 
     let msg = format!("User has left the chat");
     let message = Message::new(MessageType::Message, MessagePayload::new("SERVER".to_string(), msg).to_bytes());
-    state.broadcast(addr, message.to_bytes()).await;
+    state.broadcast(addr, message).await;
 
 
     Ok(())
