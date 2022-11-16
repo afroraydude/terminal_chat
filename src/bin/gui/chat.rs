@@ -4,6 +4,7 @@ use rand_core::OsRng;
 use x25519_dalek::{StaticSecret, PublicKey};
 use std::sync::mpsc::{Sender, Receiver, self};
 use tokio::sync::mpsc::UnboundedSender;
+use common::message::MessageType;
 
 pub struct ChatApp {
     pub user: User,
@@ -33,7 +34,15 @@ impl ChatApp {
     pub fn update(&mut self) {
         // check for new messages
         while let Ok(message) = self.rx.try_recv() {
-            self.messages.push(message);
+            if (message.message_type != MessageType::Message) {
+                continue;
+            }
+            let payload = message.payload.clone();
+            let mut payload = MessagePayload::from_bytes(payload);
+            payload.message = crypt::decrypt_data(payload.message.clone(), self.shared_key.clone());
+            let mut new_message = message.clone();
+            new_message.payload = payload.to_bytes();
+            self.messages.push(new_message);
         }
     }
 
@@ -58,9 +67,7 @@ impl ChatApp {
                     for message in self.messages.iter() {
                         // convert payload to messagepayload
                         let payload = MessagePayload::from_bytes(message.payload.clone());
-                        // decrypt the message
-                        let text = crypt::decrypt_data(payload.message, self.shared_key.clone());
-                        let text = String::from_utf8(text).unwrap();
+                        let text = String::from_utf8(payload.message).unwrap();
                         ui.label(format!(
                             "[{}] {}: {}",
                             common::id::to_formatted_timestamp(message.id, "%H:%M:%S"),
