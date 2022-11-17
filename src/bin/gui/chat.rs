@@ -34,15 +34,25 @@ impl ChatApp {
     pub fn update(&mut self) {
         // check for new messages
         while let Ok(message) = self.rx.try_recv() {
-            if (message.message_type != MessageType::Message) {
-                continue;
+            match message.message_type {
+                MessageType::Message => {
+                    let payload = message.payload.clone();
+                    let mut payload = MessagePayload::from_bytes(payload);
+                    payload.message = crypt::decrypt_data(payload.message.clone(), self.shared_key.clone());
+                    let mut new_message = message.clone();
+                    new_message.payload = payload.to_bytes();
+                    self.messages.push(new_message);
+                }
+                MessageType::ConnectionReceive => {
+                    // the payload is the public key
+                    let pub_key = crypt::deserialize_public_key(message.payload);
+                    // generate a shared key
+                    let priv_key = crypt::deserialize_private_key(self.secret.clone());
+                    self.set_shared_key(crypt::create_shared_key(priv_key, pub_key));
+                }
+                _ => {}
             }
-            let payload = message.payload.clone();
-            let mut payload = MessagePayload::from_bytes(payload);
-            payload.message = crypt::decrypt_data(payload.message.clone(), self.shared_key.clone());
-            let mut new_message = message.clone();
-            new_message.payload = payload.to_bytes();
-            self.messages.push(new_message);
+
         }
     }
 
@@ -90,7 +100,7 @@ impl ChatApp {
                     // send the message
                     let mut payload = MessagePayload::new(
                         self.user.clone().username,
-                        self.next_message.clone(),
+                        self.next_message.clone().as_bytes().to_vec(),
                     );
                     let mut message = Message::new(common::message::MessageType::Message, payload.to_bytes());
                     self.messages.push(message.clone());
@@ -118,6 +128,10 @@ impl ChatApp {
 
     pub fn get_shared_key(&self) -> Vec<u8> {
         self.shared_key.clone()
+    }
+
+    fn get_secret(&self) -> Vec<u8> {
+        self.secret.clone()
     }
 }
 

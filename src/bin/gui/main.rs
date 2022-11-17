@@ -73,6 +73,8 @@ async fn main() {
 
     user.set_public_key(crypt::serialize_public_key(pub_key.clone()));
 
+    app.set_secret(crypt::serialize_private_key(priv_key.clone()));
+
 
     // spawn the connect task
     tokio::spawn(async move {
@@ -133,6 +135,8 @@ async fn connect(
                   // send login message
                   let login_message = Message::new(MessageType::Login, user.clone().to_bytes());
                   sink.send(Bytes::from(login_message.to_bytes())).await?;
+                  // send the connection receive message to the rx channel
+                  tx.send(message).unwrap();
                 },
                 _ => {
                   log::error!("Invalid message type");
