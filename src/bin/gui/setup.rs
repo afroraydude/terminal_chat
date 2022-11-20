@@ -19,8 +19,10 @@ impl Setup {
     fn setup(&mut self) {
         let user = User::new(self.username.clone());
 
-        // save the user to a file
-        let mut file = std::fs::File::create("me.dat").unwrap();
+        // save the user to a file in the config dir
+        let mut path = common::get_config_dir();
+        path.push_str("/config.yut");
+        let mut file = std::fs::File::create(path).unwrap();
 
         file.write_all(&user.to_bytes()).unwrap();
 

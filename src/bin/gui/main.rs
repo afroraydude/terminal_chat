@@ -26,8 +26,11 @@ mod setup;
 
 fn setup() -> User {
     // if file exists, read from file
-    if path::Path::new("me.dat").exists() {
-        let file = File::open("me.dat").unwrap();
+    let mut path = common::get_config_dir();
+    path.push_str("/config.yut");
+    let file = File::open(path);
+    if file.is_ok() {
+        let file = file.unwrap();
         let reader = BufReader::new(file);
         let user: User = rmp_serde::from_read(reader).unwrap();
         return user;
@@ -45,11 +48,11 @@ fn setup() -> User {
     );
 
     // load the user from the file
-    let file = File::open("me.dat").unwrap();
+    let mut path = common::get_config_dir();
+    path.push_str("/config.yut");
+    let file = File::open(path).unwrap();
     let reader = BufReader::new(file);
-    let user: User = rmp_serde::from_read(reader).unwrap_or_else(
-        |e| panic!("Failed to load user from file: {}. Check your permissions maybe?", e),
-    );
+    let user: User = rmp_serde::from_read(reader).unwrap();
 
     user
 }
