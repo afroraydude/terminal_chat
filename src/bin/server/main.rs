@@ -124,7 +124,7 @@ async fn handle_connection(
         state.add_shared_key(addr, shared_key);
         debug!("Shared key created, {:?}", state.get_shared_key(addr));
         let message_payload = format!("{} has joined the server", user.username);
-        let message_payload = MessagePayload::new("SERVER".to_string(), message_payload).to_bytes();
+        let message_payload = MessagePayload::new("SERVER".to_string(), message_payload.as_bytes().to_vec()).to_bytes();
         let message = Message::new(MessageType::Message, message_payload);
         state.broadcast(None, message).await;
     }
@@ -166,7 +166,7 @@ async fn handle_connection(
     state.remove_client(addr);
 
     let msg = format!("User has left the chat");
-    let message = Message::new(MessageType::Message, MessagePayload::new("SERVER".to_string(), msg).to_bytes());
+    let message = Message::new(MessageType::Message, MessagePayload::new("SERVER".to_string(), msg.as_bytes().to_vec()).to_bytes());
     state.broadcast(None, message).await;
 
 

@@ -19,6 +19,10 @@ path = "src/bin/gui/main.rs"
 name = "tester"
 path = "src/bin/tester/main.rs"
 
+[[bin]]
+name = "standalone"
+path = "src/bin/standalone/main.rs"
+
 [lib]
 name = "common"
 path = "src/common/lib.rs"

@@ -44,7 +44,7 @@ impl Default for Setup {
 impl eframe::App for Setup {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Welcome to Chat!");
+            ui.heading("Welcome to Yuttari!");
             ui.add(egui::Label::new("Enter your username:"));
             ui.add(egui::TextEdit::singleline(&mut self.username));
             if ui.button("Done").clicked() {
