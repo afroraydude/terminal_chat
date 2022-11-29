@@ -137,7 +137,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                     for chunk in chunks {
                         let chunk = crypt::encrypt_data(chunk.to_vec(), client.get_shared_key());
-                        let message_payload = MessagePayload::new(user.clone().username, chunk);
+                        // TODO: Channels
+                        let message_payload = MessagePayload::new(user.clone().username, "#general".to_string(), chunk);
                         let message = Message::new(MessageType::Message, message_payload.to_bytes());
                         sink.send(Bytes::from(message.to_bytes())).await?;
                     }

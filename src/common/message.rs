@@ -1,9 +1,3 @@
-use std::io;
-use std::net::TcpStream;
-use std::pin::Pin;
-use std::task::Context;
-use std::task::Poll;
-
 use crate::id::create_id;
 use crate::id::IdType;
 use serde::{Deserialize, Serialize};
@@ -87,13 +81,15 @@ pub trait Payload {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MessagePayload {
     pub username: String,
+    pub channel: String,
     pub message: Vec<u8>,
 }
 
 impl MessagePayload {
-    pub fn new(username: String, message: Vec<u8>) -> MessagePayload {
+    pub fn new(username: String, channel: String, message: Vec<u8>) -> MessagePayload {
         MessagePayload {
             username,
+            channel,
             message,
         }
     }
@@ -106,7 +102,7 @@ impl Payload for MessagePayload {
 
     fn from_bytes(bytes: Vec<u8>) -> MessagePayload {
         rmp_serde::from_slice(&bytes).unwrap_or_else(
-            |_| MessagePayload::new("".to_string(), "00000000".as_bytes().to_vec())
+            |_| MessagePayload::new("unknown".to_string(), "unknown".to_string(), "00000000".as_bytes().to_vec())
         )
     }
 

@@ -100,6 +100,7 @@ impl ChatApp {
                     // send the message
                     let mut payload = MessagePayload::new(
                         self.user.clone().username,
+                        "#general".to_string(),
                         self.next_message.clone().as_bytes().to_vec(),
                     );
                     let mut message = Message::new(common::message::MessageType::Message, payload.to_bytes());
@@ -142,7 +143,7 @@ impl eframe::App for ChatApp {
         } else {
             // ask for socket address
             egui::CentralPanel::default().show(ctx, |ui| {
-                ui.heading("Welcome to Chat!");
+                ui.heading("Welcome to Yuttari!");
                 ui.add(egui::Label::new("Enter the server to connect to:"));
                 ui.add(egui::TextEdit::singleline(&mut self.next_message));
                 if ui.button("Done").clicked() {
