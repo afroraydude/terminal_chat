@@ -3,6 +3,7 @@ extern crate common;
 use std::io::Write;
 use common::message::{Message, MessageType};
 use log::{debug, LevelFilter};
+use rand::Rng;
 use simplelog::{SimpleLogger, Config};
 use common::crypt;
 
@@ -45,28 +46,36 @@ fn main() {
     }
 
     let list_of_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+{}|:<>?[];',./`~".chars().collect::<Vec<char>>();
-
+    let mut compute_times: Vec<u128> = Vec::new();
     // create a message of random bytes
-    let mut random_message = Vec::new();
-    for _ in 0..1000 {
-        random_message.push(list_of_chars[rand::random::<usize>() % list_of_chars.len()] as u8);
+    for i in 0..1000 {
+        // start stopwatch
+        let start = std::time::Instant::now();
+
+        let mut random_message = Vec::new();
+
+        let message_length = rand::thread_rng().gen_range(1..1000);
+
+        for _ in 0..message_length {
+            random_message.push(list_of_chars[rand::random::<usize>() % list_of_chars.len()] as u8);
+        }
+
+        // encrypt the message
+        let encrypted_message = crypt::encrypt_data(random_message.clone(), shared_key1.clone());
+        let decrypted_message = crypt::decrypt_data(encrypted_message.clone(), shared_key2.clone());
+
+        debug!("Test {} complete", i);
+
+        // stop stopwatch
+        let duration = start.elapsed();
+        compute_times.push(duration.as_millis());
     }
 
-    // encrypt the message
-    let encrypted_message = crypt::encrypt_data(random_message.clone(), shared_key1.clone());
-    let decrypted_message = crypt::decrypt_data(encrypted_message.clone(), shared_key2.clone());
-
-    // print the message
-    debug!("Original message: {:?}", random_message);
-    debug!("Original message: {}", String::from_utf8(random_message.clone()).unwrap());
-    debug!("Encrypted message: {:?}", encrypted_message);
-    debug!("Decrypted message: {:?}", decrypted_message);
-    debug!("Decrypted message: {}", String::from_utf8(decrypted_message.clone()).unwrap());
-
-    // check if the message is the same
-    if random_message == decrypted_message {
-        debug!("Messages are the same");
-    } else {
-        debug!("Messages are not the same");
+    let mut sum = 0;
+    for time in compute_times.clone() {
+        sum += time;
     }
+    debug!("Average time: {}ms", sum / compute_times.len() as u128);
+    debug!("Total time: {}ms", sum);
+    debug!("Total time: {}s", sum / 1000);
 }

@@ -87,7 +87,6 @@ pub fn decrypt_data(data: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
         crypto::blockmodes::PkcsPadding,
     );
     let mut read_buffer = RefReadBuffer::new(&data[..data.len() - 16]);
-    debug!("read buffer: {}", data.len() - 16);
     let mut buffer = [0; 4096];
     let mut write_buffer = RefWriteBuffer::new(&mut buffer);
     loop {
