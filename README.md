@@ -1,4 +1,4 @@
-# Open-Source Chat
+# Yuttari: Open-Source Chat
 
 Yuttari is a free and open-source lightweight chat application with secure
 end-to-end encryption between users and the server. 
